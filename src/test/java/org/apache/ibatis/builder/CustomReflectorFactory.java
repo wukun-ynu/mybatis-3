@@ -17,6 +17,9 @@ package org.apache.ibatis.builder;
 
 import org.apache.ibatis.reflection.DefaultReflectorFactory;
 
+/**
+ * 支持定制化ReflectorFactory
+ */
 public class CustomReflectorFactory extends DefaultReflectorFactory {
 
 }

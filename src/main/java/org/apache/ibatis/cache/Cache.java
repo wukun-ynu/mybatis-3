@@ -44,6 +44,7 @@ public interface Cache {
   /**
    * @return The identifier of this cache
    */
+  // 获取当前缓存的id
   String getId();
 
   /**
@@ -52,6 +53,7 @@ public interface Cache {
    * @param value
    *          The result of a select.
    */
+  // 存入缓存的key和value,key一般为CacheKey对象
   void putObject(Object key, Object value);
 
   /**
@@ -60,6 +62,7 @@ public interface Cache {
    *
    * @return The object stored in the cache.
    */
+  // 根据Key获取缓存值
   Object getObject(Object key);
 
   /**
@@ -73,11 +76,13 @@ public interface Cache {
    *
    * @return Not used
    */
+  // 删除指定的缓存项
   Object removeObject(Object key);
 
   /**
    * Clears this cache instance.
    */
+  // 清空缓存
   void clear();
 
   /**
@@ -94,6 +99,7 @@ public interface Cache {
    *
    * @return A ReadWriteLock
    */
+  // 获取读写锁，可以看到，这个接口方法提供了默认的实现
   default ReadWriteLock getReadWriteLock() {
     return null;
   }

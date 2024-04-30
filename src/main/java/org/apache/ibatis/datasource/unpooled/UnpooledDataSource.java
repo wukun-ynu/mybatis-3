@@ -36,22 +36,36 @@ import org.apache.ibatis.util.MapUtil;
 /**
  * @author Clinton Begin
  * @author Eduardo Macarron
+ * 本实现类实现了 DataSource 接口 中的 getConnection() 及其重载方法，用于获取数据库连接
  */
 public class UnpooledDataSource implements DataSource {
 
+  // 加载Driver驱动类的类加载器
   private ClassLoader driverClassLoader;
+
+  // 数据库连接驱动的相关配置，通过UnpooledDataSourceFactory的setProperties()方法设置
   private Properties driverProperties;
+  // 缓存所有已注册的数据库连接驱动Driver
   private static final Map<String, Driver> registeredDrivers = new ConcurrentHashMap<>();
 
+  // 数据库连接驱动名称
   private String driver;
+  // 数据url
   private String url;
+  // 用户名
   private String username;
+  // 密码
   private String password;
 
+  // 是否自动提交事务
   private Boolean autoCommit;
+  // 默认的事务隔离级别
   private Integer defaultTransactionIsolationLevel;
+  // 默认的网络连接超时事件
   private Integer defaultNetworkTimeout;
 
+  // UnpooledDataSource被加载时，会通过静态代码将已经在DriverManager
+  // 中注册的JDBC Driver注册到registeredDriver中
   static {
     Enumeration<Driver> drivers = DriverManager.getDrivers();
     while (drivers.hasMoreElements()) {
@@ -224,24 +238,35 @@ public class UnpooledDataSource implements DataSource {
     return doGetConnection(props);
   }
 
+  // getConnection() 及其重载方法、doGetConnection(String username, String password)方法
+  // 最终都会调用本方法
   private Connection doGetConnection(Properties properties) throws SQLException {
+    // 初始化数据库驱动，该方法会创建配置中指定的Driver对象
+    // 并将其注册到DriverManager和registeredDriver中
     initializeDriver();
+    // 数据库连接 TODO
     Connection connection = DriverManager.getConnection(url, properties);
+    // 配置数控连接属性，如： 连接超时事件、是否自动提交事务、事务隔离级别
     configureConnection(connection);
     return connection;
   }
 
   private void initializeDriver() throws SQLException {
     try {
+      // 判断驱动是否已注册
       MapUtil.computeIfAbsent(registeredDrivers, driver, x -> {
         Class<?> driverType;
         try {
           if (driverClassLoader != null) {
+            // 注册驱动
             driverType = Class.forName(x, true, driverClassLoader);
           } else {
             driverType = Resources.classForName(x);
           }
+          // 通过反射获取Driver实例对象
           Driver driverInstance = (Driver) driverType.getDeclaredConstructor().newInstance();
+          // 注册驱动到DriverManager,DriverProxy是UnpooledDataSource的内部类
+          // 也是Driver的静态内部类
           DriverManager.registerDriver(new DriverProxy(driverInstance));
           return driverInstance;
         } catch (Exception e) {
@@ -254,12 +279,15 @@ public class UnpooledDataSource implements DataSource {
   }
 
   private void configureConnection(Connection conn) throws SQLException {
+    // 连接超时事件
     if (defaultNetworkTimeout != null) {
       conn.setNetworkTimeout(Executors.newSingleThreadExecutor(), defaultNetworkTimeout);
     }
+    // 是否自动提交事务
     if (autoCommit != null && autoCommit != conn.getAutoCommit()) {
       conn.setAutoCommit(autoCommit);
     }
+    // 事务隔离级别
     if (defaultTransactionIsolationLevel != null) {
       conn.setTransactionIsolation(defaultTransactionIsolationLevel);
     }

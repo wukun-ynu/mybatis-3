@@ -27,10 +27,14 @@ import org.apache.ibatis.cache.Cache;
  */
 public class FifoCache implements Cache {
 
+  // 被装饰者对象
   private final Cache delegate;
+  // 用一个FIFO的队列记录key的顺序，其具体实现为LinkedList
   private final Deque<Object> keyList;
+  // 决定了缓存的容量上限
   private int size;
 
+  // 国际惯例，通过构造方法初始化自己的属性，缓存容量上限默认为 1024个
   public FifoCache(Cache delegate) {
     this.delegate = delegate;
     this.keyList = new LinkedList<>();
@@ -53,7 +57,9 @@ public class FifoCache implements Cache {
 
   @Override
   public void putObject(Object key, Object value) {
+    // 清除缓存项之前，先在keyList中注册
     cycleKeyList(key);
+    // 存储缓存项
     delegate.putObject(key, value);
   }
 
@@ -68,6 +74,7 @@ public class FifoCache implements Cache {
     return delegate.removeObject(key);
   }
 
+  // 除了清理缓存项，还要清理key的注册列表
   @Override
   public void clear() {
     delegate.clear();
@@ -75,8 +82,10 @@ public class FifoCache implements Cache {
   }
 
   private void cycleKeyList(Object key) {
+    // 在keyList队列中注册要添加的key
     keyList.addLast(key);
     if (keyList.size() > size) {
+      // 如果注册这个 key会超出容积上限，则把最老的一个缓存项清除掉
       Object oldestKey = keyList.removeFirst();
       delegate.removeObject(oldestKey);
     }

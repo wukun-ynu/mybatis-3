@@ -24,7 +24,8 @@ import java.sql.SQLException;
 import org.apache.ibatis.reflection.ExceptionUtil;
 
 /**
- * @author Clinton Begin
+ * PooledDataSource 通过管理 PooledConnection 来实现对 java.sql.Connection 的管理。PooledConnection 封装了 java.sql.Connection 数据库连接对象 及其代理对象（JDK 动态代理生成的）。
+ * PooledConnection 继承了 JDK 动态代理 的 InvocationHandler 接口。
  */
 class PooledConnection implements InvocationHandler {
 
@@ -32,13 +33,23 @@ class PooledConnection implements InvocationHandler {
   private static final Class<?>[] IFACES = { Connection.class };
 
   private final int hashCode;
+  // 记录当前PooledConnection对象，所属的PooledDataSource对象
+  // 当调用close()方法时会将PooledConnection放回该PooledDataSource
   private final PooledDataSource dataSource;
+  // 真正的数据库连接对象
   private final Connection realConnection;
+  // 代理连接对象
   private final Connection proxyConnection;
+  // 从连接池中取出该连接时的时间戳
   private long checkoutTimestamp;
+  // 创建该连接时的时间戳
   private long createdTimestamp;
+  // 最后一次使用的时间戳
   private long lastUsedTimestamp;
+  // 由数据库URL、用户名、密码计算出来的Hash值，可用于标识该连接所在的连接池
   private int connectionTypeCode;
+  // 检测当前的PooledConnection连接池连接对象是否有效，主要用于防止程序通过close()方法将
+  // 连接还给连接池之后，依然通过该连接池操作数据库
   private boolean valid;
 
   /**
@@ -242,9 +253,14 @@ class PooledConnection implements InvocationHandler {
    *
    * @see java.lang.reflect.InvocationHandler#invoke(Object, java.lang.reflect.Method, Object[])
    */
+  /**
+   * invoke()方法 是本类的重点实现，也是 proxyConnection代理连接对象 的代理逻辑实现
+   * 它会对 close()方法 的调用进行处理，并在调用 realConnection对象 的方法之前进行校验
+   */
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     String methodName = method.getName();
+    // 如果调用的是close()方法，则将其放进连接池，而不是真正的关闭连接
     if (CLOSE.equals(methodName)) {
       dataSource.pushConnection(this);
       return null;
@@ -253,8 +269,10 @@ class PooledConnection implements InvocationHandler {
       if (!Object.class.equals(method.getDeclaringClass())) {
         // issue #579 toString() should never fail
         // throw an SQLException instead of a Runtime
+        // 通过上面的valid字段 校验连接是否有效
         checkConnection();
       }
+      // 调用realConnection对象的对应方法
       return method.invoke(realConnection, args);
     } catch (Throwable t) {
       throw ExceptionUtil.unwrapThrowable(t);

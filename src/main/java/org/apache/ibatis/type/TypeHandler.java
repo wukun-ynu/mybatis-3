@@ -22,9 +22,11 @@ import java.sql.SQLException;
 
 /**
  * @author Clinton Begin
+ * 是 Mybatis 中所有类型转换器的顶层接口，主要用于实现数据从 Java 类型 到 JdbcType 类型 的相互转换
  */
 public interface TypeHandler<T> {
 
+  // 通过PreparedStatement为SQL语句绑定参数时，将数据从JAVA类型转换为JDBC类型
   void setParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException;
 
   /**
@@ -40,6 +42,7 @@ public interface TypeHandler<T> {
    * @throws SQLException
    *           the SQL exception
    */
+  // 从结果集获取数据时，将数据由JDBC类型转换为Java类型
   T getResult(ResultSet rs, String columnName) throws SQLException;
 
   T getResult(ResultSet rs, int columnIndex) throws SQLException;

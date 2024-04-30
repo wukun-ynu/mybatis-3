@@ -25,9 +25,12 @@ import java.sql.SQLException;
  */
 public class IntegerTypeHandler extends BaseTypeHandler<Integer> {
 
+  // NonNull 就是NoneNull，非空的意思
   @Override
   public void setNonNullParameter(PreparedStatement ps, int i, Integer parameter, JdbcType jdbcType)
       throws SQLException {
+    // IntegerTypeHandler就调用PreparedStatement的setInt()方法
+    // 其它的基本数据类型，以此类推
     ps.setInt(i, parameter);
   }
 

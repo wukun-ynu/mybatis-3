@@ -54,17 +54,24 @@ import org.apache.ibatis.util.MapUtil;
 public class Reflector {
 
   private static final MethodHandle isRecordMethodHandle = getIsRecordMethodHandle();
+  // javaBean 的class类型，再调用Reflector的构造方法时初始化该值
   private final Class<?> type;
+  // 可读的属性列表
   private final String[] readablePropertyNames;
   private final String[] writablePropertyNames;
+  // key属性名，value该属性名对应的setter方法调用器
   private final Map<String, Invoker> setMethods = new HashMap<>();
   private final Map<String, Invoker> getMethods = new HashMap<>();
+  // key 属性名称， value 该属性setter方法的返回值类型
   private final Map<String, Class<?>> setTypes = new HashMap<>();
   private final Map<String, Class<?>> getTypes = new HashMap<>();
+  // type的默认构造方法
   private Constructor<?> defaultConstructor;
 
+  // 所有属性名称的集合
   private final Map<String, String> caseInsensitivePropertyMap = new HashMap<>();
 
+  // 里面的大部分方法都是通过简单的JDK反射操作实现的
   public Reflector(Class<?> clazz) {
     type = clazz;
     addDefaultConstructor(clazz);
@@ -72,15 +79,19 @@ public class Reflector {
     if (isRecord(type)) {
       addRecordGetMethods(classMethods);
     } else {
+      // 处理clazz中的所有getter方法，填充getMethods集合和getTypes集合
       addGetMethods(classMethods);
       addSetMethods(classMethods);
+      // 处理没有getter、setter方法的字段
       addFields(clazz);
     }
+    // 根据 getMethods、setMethods集合 初始化可读、可写的属性
     readablePropertyNames = getMethods.keySet().toArray(new String[0]);
     writablePropertyNames = setMethods.keySet().toArray(new String[0]);
     for (String propName : readablePropertyNames) {
       caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
     }
+    // 初始化caseInsensitivePropertyMap集合，key属性名的大写，value属性名
     for (String propName : writablePropertyNames) {
       caseInsensitivePropertyMap.put(propName.toUpperCase(Locale.ENGLISH), propName);
     }

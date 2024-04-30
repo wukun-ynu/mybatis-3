@@ -35,6 +35,8 @@ import org.apache.ibatis.reflection.Reflector;
 
 /**
  * @author Clinton Begin
+ * ObjectFactory接口的唯一直接实现，反射工厂，根据传入的参数列表，选择
+ * 合适的构造函数实例化对象，不传参数，则直接调用其无参构造方法
  */
 public class DefaultObjectFactory implements ObjectFactory, Serializable {
 
@@ -53,6 +55,10 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
     return (T) instantiateClass(classToCreate, constructorArgTypes, constructorArgs);
   }
 
+  /**
+   * 通过反射来实例化给定的类，如果调用无参构造方法，则直接constructor.newInstance()
+   * 如果有参，则根据参数类型和参数值进行调用
+   */
   private <T> T instantiateClass(Class<T> type, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
     try {
       Constructor<T> constructor;

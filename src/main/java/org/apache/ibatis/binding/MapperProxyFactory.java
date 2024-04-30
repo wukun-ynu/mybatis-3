@@ -28,9 +28,12 @@ import org.apache.ibatis.session.SqlSession;
  */
 public class MapperProxyFactory<T> {
 
+  // 要创建的动态代理对象所实现的接口
   private final Class<T> mapperInterface;
+  // 缓存mapperInterface接口中Method对象和其对应的MapperMethod对象
   private final Map<Method, MapperMethodInvoker> methodCache = new ConcurrentHashMap<>();
 
+  // 初始化时为mapperInterface注入值
   public MapperProxyFactory(Class<T> mapperInterface) {
     this.mapperInterface = mapperInterface;
   }
@@ -45,9 +48,15 @@ public class MapperProxyFactory<T> {
 
   @SuppressWarnings("unchecked")
   protected T newInstance(MapperProxy<T> mapperProxy) {
+    // 每次都会创建一个新的MapperProxy对象
     return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[] { mapperInterface }, mapperProxy);
   }
 
+  /**
+   * JDK动态代理 代码：创建了实现mapperInterface接口的代理对象
+   * 根据国际惯例，mapperProxy对应的类，肯定实现了InvocationHandler接口
+   * 为mapperInterface接口方法的调用织入统一处理逻辑
+   */
   public T newInstance(SqlSession sqlSession) {
     final MapperProxy<T> mapperProxy = new MapperProxy<>(sqlSession, mapperInterface, methodCache);
     return newInstance(mapperProxy);

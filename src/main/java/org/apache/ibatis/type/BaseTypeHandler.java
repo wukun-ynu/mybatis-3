@@ -35,6 +35,7 @@ import org.apache.ibatis.session.Configuration;
  * @author Simone Tripodi
  * @author Kzuki Shimizu
  */
+// 可用于实现自定义的TypeHandler
 public abstract class BaseTypeHandler<T> extends TypeReference<T> implements TypeHandler<T> {
 
   /**
@@ -56,6 +57,9 @@ public abstract class BaseTypeHandler<T> extends TypeReference<T> implements Typ
     this.configuration = c;
   }
 
+  /**
+   * 只是处理了一些数据为空的特殊情况，非空数据的处理交给子类去处理
+   */
   @Override
   public void setParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException {
     if (parameter == null) {
@@ -110,6 +114,7 @@ public abstract class BaseTypeHandler<T> extends TypeReference<T> implements Typ
     }
   }
 
+  // 交由子类实现
   public abstract void setNonNullParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType)
       throws SQLException;
 

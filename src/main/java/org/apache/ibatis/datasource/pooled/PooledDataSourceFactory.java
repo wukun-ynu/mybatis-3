@@ -22,6 +22,7 @@ import org.apache.ibatis.datasource.unpooled.UnpooledDataSourceFactory;
  */
 public class PooledDataSourceFactory extends UnpooledDataSourceFactory {
 
+  // // 与 UnpooledDataSourceFactory 的不同之处是，其初始化的 DataSource 为 PooledDataSource
   public PooledDataSourceFactory() {
     this.dataSource = new PooledDataSource();
   }

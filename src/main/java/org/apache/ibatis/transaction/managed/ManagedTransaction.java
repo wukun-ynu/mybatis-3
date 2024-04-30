@@ -38,11 +38,16 @@ public class ManagedTransaction implements Transaction {
 
   private static final Log log = LogFactory.getLog(ManagedTransaction.class);
 
+  // 数据源
   private DataSource dataSource;
+  // 事务隔离级别
   private TransactionIsolationLevel level;
+  // 对应的数据库连接
   private Connection connection;
+  // 控制是否有关闭持有的连接，在close()方法中用其判断是否真的关闭连接
   private final boolean closeConnection;
 
+  // 本类的实现也很简单，commit()、rollback()方法都是空实现
   public ManagedTransaction(Connection connection, boolean closeConnection) {
     this.connection = connection;
     this.closeConnection = closeConnection;

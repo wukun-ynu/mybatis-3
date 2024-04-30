@@ -21,6 +21,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author Clinton Begin
+ * PoolState 主要用于管理 PooledConnection 对象状态，其通过持有两个 List<PooledConnection>集合 分别管理空闲状态的连接 和 活跃状态的连接。
+ * 另外，PoolState 还定义了一系列用于统计的字段。
  */
 public class PoolState {
 
@@ -31,17 +33,29 @@ public class PoolState {
   // A possible fix is to create and return a 'snapshot'.
   private final ReentrantLock lock = new ReentrantLock();
 
+  // 所属的连接池对象
   protected PooledDataSource dataSource;
 
+  // 空闲的连接
   protected final List<PooledConnection> idleConnections = new ArrayList<>();
+  // 活跃的连接
   protected final List<PooledConnection> activeConnections = new ArrayList<>();
+  // 请求数据库连接的次数
   protected long requestCount;
+  // 获取连接的累计时间(accumulate累计)
   protected long accumulatedRequestTime;
+  // CheckoutTime = 记录 应用从连接池取出连接到归还连接的时长
+  // accumulatedCheckoutTime = 所有连接累计的CheckoutTime
   protected long accumulatedCheckoutTime;
+  // 超时连接的个数(当连接长时间未归还给连接池时，会被认为连接超时)
   protected long claimedOverdueConnectionCount;
+  // 累计超时时间
   protected long accumulatedCheckoutTimeOfOverdueConnections;
+  // 累计等待时间
   protected long accumulatedWaitTime;
+  // 等待次数
   protected long hadToWaitCount;
+  // 无效的连接数
   protected long badConnectionCount;
 
   public PoolState(PooledDataSource dataSource) {

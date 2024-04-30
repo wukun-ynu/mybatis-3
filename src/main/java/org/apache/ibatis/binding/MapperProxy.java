@@ -33,6 +33,7 @@ import org.apache.ibatis.util.MapUtil;
 /**
  * @author Clinton Begin
  * @author Eduardo Macarron
+ *  实现了 InvocationHandler 接口，为 Mapper 接口 的方法调用织入了统一处理。
  */
 public class MapperProxy<T> implements InvocationHandler, Serializable {
 
@@ -41,8 +42,12 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
       | MethodHandles.Lookup.PACKAGE | MethodHandles.Lookup.PUBLIC;
   private static final Constructor<Lookup> lookupConstructor;
   private static final Method privateLookupInMethod;
+  // 记录关联的sqlSession对象
   private final SqlSession sqlSession;
+  // 对应的Mapper接口的Class对象
   private final Class<T> mapperInterface;
+  // 用于缓存MapperMethodInvoker对象，key: Mapper接口中方法对应的Method对象
+  // value: MapperMethodInvoker对象(该对象会完成参数转换及sql语句的执行功能)
   private final Map<Method, MapperMethodInvoker> methodCache;
 
   public MapperProxy(SqlSession sqlSession, Class<T> mapperInterface, Map<Method, MapperMethodInvoker> methodCache) {
@@ -77,18 +82,23 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     lookupConstructor = lookup;
   }
 
+  // 为被代理对象的方法织入统一处理
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     try {
+      // 如果目标方法继承自Object，则直接调用目标方法
       if (Object.class.equals(method.getDeclaringClass())) {
         return method.invoke(this, args);
       }
+      // 从缓存中获取 mapperMethod对象，如果没有就创建新的
+      // 执行 sql语句，返回结果集
       return cachedInvoker(method).invoke(proxy, method, args, sqlSession);
     } catch (Throwable t) {
       throw ExceptionUtil.unwrapThrowable(t);
     }
   }
 
+  // 主要负责维护 methodCache 缓存
   private MapperMethodInvoker cachedInvoker(Method method) throws Throwable {
     try {
       return MapUtil.computeIfAbsent(methodCache, method, m -> {

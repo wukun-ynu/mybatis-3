@@ -51,12 +51,17 @@ import org.apache.ibatis.session.Configuration;
 /**
  * @author Clinton Begin
  * @author Kazuki Shimizu
+ * TypeHandlerRegistry 主要负责管理所有已知的 TypeHandler，Mybatis 在初始化过程中会为所有已知的 TypeHandler 创建对象，并注册到 TypeHandlerRegistry。
  */
 public final class TypeHandlerRegistry {
 
+  // 该集合主要用于从结果集读取数据时
   private final Map<JdbcType, TypeHandler<?>> jdbcTypeHandlerMap = new EnumMap<>(JdbcType.class);
+  // 记录了Java类型向指定JdbcType转换时，需要使用的TypeHandler对象
+  //  如：String 可能转换成数据库的 char、varchar 等多种类型，所以存在一对多的关系
   private final Map<Type, Map<JdbcType, TypeHandler<?>>> typeHandlerMap = new ConcurrentHashMap<>();
   private final TypeHandler<Object> unknownTypeHandler;
+  // key: TypeHandler的类型；value：该TypeHandler类型对应的TypeHandler对象
   private final Map<Class<?>, TypeHandler<?>> allTypeHandlersMap = new HashMap<>();
 
   private static final Map<JdbcType, TypeHandler<?>> NULL_TYPE_HANDLER_MAP = Collections.emptyMap();
@@ -77,6 +82,13 @@ public final class TypeHandlerRegistry {
    *          a MyBatis configuration
    *
    * @since 3.5.4
+   */
+  /**
+   * 进行 Java 及 JDBC基本数据类型 的 TypeHandler 注册
+   * 除了注册 Mybatis 提供的 基本TypeHandler 外，我们也可以添加自定义的 TypeHandler
+   * 接口实现，在 mybatis-config.xml配置文件 中 <typeHandlers>节点 下添加相应的
+   * <typeHandlers>节点配置，并指定自定义的 TypeHandler实现类。Mybatis 在初始化时
+   * 会解析该节点，并将 TypeHandler类型 的对象注册到 TypeHandlerRegistry 中供 Mybatis 后续使用
    */
   public TypeHandlerRegistry(Configuration configuration) {
     this.unknownTypeHandler = new UnknownTypeHandler(configuration);
@@ -234,11 +246,16 @@ public final class TypeHandlerRegistry {
     return getTypeHandler(javaTypeReference.getRawType(), jdbcType);
   }
 
+  // 获取TypeHandler对象
+  // getTypeHandler()方法亦存在多种重载，而本重载方法被其它多个重载方法调用
   @SuppressWarnings("unchecked")
   private <T> TypeHandler<T> getTypeHandler(Type type, JdbcType jdbcType) {
     if (ParamMap.class.equals(type)) {
       return null;
     }
+    // Java数据类型 与 JDBC数据类型 的关系往往是一对多，
+    // 所以一般会先根据 Java数据类型 获取 Map<JdbcType, TypeHandler<?>>对象
+    // 再根据 JDBC数据类型 获取对应的 TypeHandler对象
     Map<JdbcType, TypeHandler<?>> jdbcHandlerMap = getJdbcHandlerMap(type);
     TypeHandler<?> handler = null;
     if (jdbcHandlerMap != null) {
@@ -394,6 +411,10 @@ public final class TypeHandlerRegistry {
     register((Type) type, jdbcType, handler);
   }
 
+  /**
+   * TypeHandlerRegistry中对registry()方法实现了多种重载，本registry()方法
+   * 被很多重载方法调用，用来完成注册功能
+   */
   private void register(Type javaType, JdbcType jdbcType, TypeHandler<?> handler) {
     if (javaType != null) {
       Map<JdbcType, TypeHandler<?>> map = typeHandlerMap.get(javaType);
@@ -465,13 +486,15 @@ public final class TypeHandlerRegistry {
   }
 
   // scan
-
+  // 提供了扫描并注册指定包目录下 TypeHandler 实现类 的 register()方法 重载。
   public void register(String packageName) {
     ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<>();
+    // 查找指定包下的TypeHandler接口实现类
     resolverUtil.find(new ResolverUtil.IsA(TypeHandler.class), packageName);
     Set<Class<? extends Class<?>>> handlerSet = resolverUtil.getClasses();
     for (Class<?> type : handlerSet) {
       // Ignore inner classes and interfaces (including package-info.java) and abstract classes
+      // 忽略掉内部类、接口及抽象类
       if (!type.isAnonymousClass() && !type.isInterface() && !Modifier.isAbstract(type.getModifiers())) {
         register(type);
       }

@@ -34,6 +34,7 @@ public class UnpooledDataSourceFactory implements DataSourceFactory {
 
   protected DataSource dataSource;
 
+  // 在实例化该工厂时，就完成了DataSource的实例化
   public UnpooledDataSourceFactory() {
     this.dataSource = new UnpooledDataSource();
   }
@@ -41,10 +42,13 @@ public class UnpooledDataSourceFactory implements DataSourceFactory {
   @Override
   public void setProperties(Properties properties) {
     Properties driverProperties = new Properties();
+    // 创建dataSource对应的MetaObject
     MetaObject metaDataSource = SystemMetaObject.forObject(dataSource);
+    // 处理properties中配置的数据源信息
     for (Object key : properties.keySet()) {
       String propertyName = (String) key;
       if (propertyName.startsWith(DRIVER_PROPERTY_PREFIX)) {
+        // 以“driver."开头的配置项是对DataSource的配置，将其记录到driverProperties中
         String value = properties.getProperty(propertyName);
         driverProperties.setProperty(propertyName.substring(DRIVER_PROPERTY_PREFIX_LENGTH), value);
       } else if (metaDataSource.hasSetter(propertyName)) {
@@ -56,6 +60,8 @@ public class UnpooledDataSourceFactory implements DataSourceFactory {
       }
     }
     if (driverProperties.size() > 0) {
+      // 设置数据源UnpooledDataSource的driverProperties属性
+      // PooledDataSource中持有 UnpooledDataSource对象
       metaDataSource.setValue("driverProperties", driverProperties);
     }
   }

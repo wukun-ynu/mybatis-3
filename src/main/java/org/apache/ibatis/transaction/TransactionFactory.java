@@ -35,6 +35,8 @@ public interface TransactionFactory {
    * @param props
    *          the new properties
    */
+  //  配置 TransactionFactory对象，一般会在完成 TransactionFactory对象
+  // 初始化之后进行自定义属性配置
   default void setProperties(Properties props) {
     // NOP
   }
@@ -49,6 +51,7 @@ public interface TransactionFactory {
    *
    * @since 3.1.0
    */
+  // 在指定的数据库连接上创建Transaction事务对象
   Transaction newTransaction(Connection conn);
 
   /**
@@ -65,6 +68,7 @@ public interface TransactionFactory {
    *
    * @since 3.1.0
    */
+  // 从指定数据源获取数据库连接，并在此连接上创建Transaction对象
   Transaction newTransaction(DataSource dataSource, TransactionIsolationLevel level, boolean autoCommit);
 
 }

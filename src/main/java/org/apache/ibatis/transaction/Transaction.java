@@ -34,6 +34,7 @@ public interface Transaction {
    * @throws SQLException
    *           the SQL exception
    */
+  // 获取连接对象
   Connection getConnection() throws SQLException;
 
   /**
@@ -42,6 +43,7 @@ public interface Transaction {
    * @throws SQLException
    *           the SQL exception
    */
+  // 提交事务
   void commit() throws SQLException;
 
   /**
@@ -50,6 +52,7 @@ public interface Transaction {
    * @throws SQLException
    *           the SQL exception
    */
+  // 回滚事务
   void rollback() throws SQLException;
 
   /**
@@ -58,6 +61,7 @@ public interface Transaction {
    * @throws SQLException
    *           the SQL exception
    */
+  // 关闭数据库连接
   void close() throws SQLException;
 
   /**
@@ -68,6 +72,7 @@ public interface Transaction {
    * @throws SQLException
    *           the SQL exception
    */
+  // 获取配置的事务超时时间
   Integer getTimeout() throws SQLException;
 
 }
