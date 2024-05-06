@@ -153,15 +153,21 @@ public class MapperBuilderAssistant extends BaseBuilder {
 
   public ResultMap addResultMap(String id, Class<?> type, String extend, Discriminator discriminator,
       List<ResultMapping> resultMappings, Boolean autoMapping) {
+    // ResultMap 的 完整id 是 "namespace.id" 的格式
     id = applyCurrentNamespace(id, false);
+    // 获取 父ResultMap 的 完整id
     extend = applyCurrentNamespace(extend, true);
 
+    // 针对 extend属性 进行的处理
     if (extend != null) {
       if (!configuration.hasResultMap(extend)) {
         throw new IncompleteElementException("Could not find a parent resultmap with id '" + extend + "'");
       }
+      // 父ResultMap对象
       ResultMap resultMap = configuration.getResultMap(extend);
+      // 父ResultMap对象 的 ResultMapping集合
       List<ResultMapping> extendedResultMappings = new ArrayList<>(resultMap.getResultMappings());
+      // 删除需要覆盖的 ResultMapping集合
       extendedResultMappings.removeAll(resultMappings);
       // Remove parent constructor if this resultMap declares a constructor.
       boolean declaresConstructor = false;
@@ -174,6 +180,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
       if (declaresConstructor) {
         extendedResultMappings.removeIf(resultMapping -> resultMapping.getFlags().contains(ResultFlag.CONSTRUCTOR));
       }
+      // 添加需要被继承下来的 ResultMapping集合
       resultMappings.addAll(extendedResultMappings);
     }
     ResultMap resultMap = new ResultMap.Builder(configuration, id, type, resultMappings, autoMapping)

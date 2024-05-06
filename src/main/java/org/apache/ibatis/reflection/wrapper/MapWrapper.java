@@ -40,9 +40,12 @@ public class MapWrapper extends BaseWrapper {
   public Object get(PropertyTokenizer prop) {
     if (prop.hasNext()) {
       return getChildValue(prop);
+      // 是否有索引
     } else if (prop.getIndex() != null) {
+      // 调用 BaseWrapper
       return getCollectionValue(prop, resolveCollection(prop, map));
     } else {
+      // 获取
       return map.get(prop.getName());
     }
   }

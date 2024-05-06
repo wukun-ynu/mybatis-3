@@ -50,6 +50,7 @@ public final class PropertyNamer {
   }
 
   public static boolean isGetter(String name) {
+    // 在语义上 is 开头的也是get开头的
     return name.startsWith("get") && name.length() > 3 || name.startsWith("is") && name.length() > 2;
   }
 

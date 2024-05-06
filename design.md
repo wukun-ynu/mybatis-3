@@ -40,4 +40,23 @@ Mybatis 在初始化过程中会读取映射配置文件和 Mapper 接口 中的
 > 在 Cache 中唯一确定一个缓存项，需要使用缓存项的 key 进行比较，MyBatis 中因为涉及 动态 SQL 等多方面因素， 其缓存项的 key 不能仅仅通过一个 String 表示，所以 MyBatis 提供了 CacheKey 类 来表示缓存项的 key，
 > 在一个 CacheKey 对象 中可以封装多个影响缓存项的因素。 CacheKey 中可以添加多个对象，由这些对象共同确定两个 CacheKey 对象 是否相同。
 
+## 核心处理层
+1. BaseBuilder - SqlSessionFactoryBuilder
+2. XMLConfigBuilder
 
+## StatementHandler
+> StatementHandler 接口中的功能很多，例如创建 Statement 对象，为 SQL 语句绑定实参，执行 select、insert、update、delete 等多种类型的 SQL 语句，批量执行 SQL 语句，将结果集映射成结果对象。
+1. RoutingStatementHandler
+> RoutingStatementHandler 使用了策略模式，RoutingStatementHandler 是策略类，而 SimpleStatementHandler、PreparedStatementHandler、CallableStatementHandler 则是实现了具体算法的实现类，RoutingStatementHandler 对象会根据 MappedStatement 对象的 StatementType 属性值选择使用相应的策略去执行。
+2. BaseStatementHandler StatementHandler 接口的抽象类，这个类只提供了一些参数绑定相关的方法，并没有实现操作数据库的方法。
+3. SimpleStatementHandler
+> SimpleStatementHandler 继承了 BaseStatementHandler 抽象类。其底层使用 java.sql.Statement 来完成数据库的相关操作，所以 SQL 语句中不存在占位符，所以 SimpleStatementHandler 的 parameterize()方法是空实现。SimpleStatementHandler 的 instantiateStatement()方法直接通过 JDBC Connection 创建 Statement 对象。
+4. PreparedStatementHandler
+> PreparedStatementHandler 底层依赖于 java.sql.PreparedStatement 来完成数据库的相关操作。其中的 parameterize()方法中，会调用前面介绍的 ParameterHandler 的 setParameters()方法 完成 SQL 语句的参数绑定。instantiateStatement()方法直接调用 JDBC Connection 的 prepareStatement()方法创建 PreparedStatement 对象。
+
+## Executor
+> Executor 接口定义了 MyBatis 中执行 SQL 语句的核心方法，包括查询、更新、批量更新等。Executor 接口 的实现类，MyBatis 中提供了 SimpleExecutor、ReuseExecutor、BatchExecutor 三个实现类。
+
+## SqlSession
+> 在 SqlSession 中定义了常用的数据库操作以及事务的相关操作，为了方便用户使用，每种类型的操作都提供了多种重载。
+1. SqlSessionFactory 负责创建 SqlSession 对象，其中包含了多个 openSession()方法的重载，可以通过其参数指定事务的隔离级别、底层使用 Executor 的类型、以及是否自动提交事务等方面的配置。

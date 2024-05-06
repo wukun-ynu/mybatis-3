@@ -50,6 +50,7 @@ import org.apache.ibatis.type.TypeHandler;
 /**
  * @author Clinton Begin
  * @author Kazuki Shimizu
+ * 和 XMLConfigBuilder 一样，XMLMapperBuilder 也继承了 BaseBuilder，其主要负责解析映射配置文件
  */
 public class XMLMapperBuilder extends BaseBuilder {
 
@@ -94,13 +95,21 @@ public class XMLMapperBuilder extends BaseBuilder {
   }
 
   public void parse() {
+    // 是否已经加载过该配置文件
     if (!configuration.isResourceLoaded(resource)) {
+      // 解析<mapper>节点
       configurationElement(parser.evalNode("/mapper"));
+      // 将resource添加到configuration的loadedResource属性中
+      // 该属性是一个HashSet<String>类型的集合，其中记录了已经加载过的映射文件
       configuration.addLoadedResource(resource);
+      // 注册Mapper接口 TODO
       bindMapperForNamespace();
     }
+    // 处理 configurationElement()方法 中解析失败的 <resultMap>节点
     configuration.parsePendingResultMaps(false);
+    // 处理 configurationElement()方法 中解析失败的 <cacheRef>节点
     configuration.parsePendingCacheRefs(false);
+    // 处理 configurationElement()方法 中解析失败的 <statement>节点
     configuration.parsePendingStatements(false);
   }
 
@@ -110,11 +119,14 @@ public class XMLMapperBuilder extends BaseBuilder {
 
   private void configurationElement(XNode context) {
     try {
+      // 获取 <mapper>节点 的 namespace属性
       String namespace = context.getStringAttribute("namespace");
       if (namespace == null || namespace.isEmpty()) {
         throw new BuilderException("Mapper's namespace cannot be empty");
       }
+      // 使用 MapperBuilderAssistant对象 的 currentNamespace属性 记录 namespace命名空间
       builderAssistant.setCurrentNamespace(namespace);
+      // 解析 <cache-ref>节点，后面的解析方法 也都见名知意
       cacheRefElement(context.evalNode("cache-ref"));
       cacheElement(context.evalNode("cache"));
       parameterMapElement(context.evalNodes("/mapper/parameterMap"));
@@ -217,30 +229,43 @@ public class XMLMapperBuilder extends BaseBuilder {
   private ResultMap resultMapElement(XNode resultMapNode, List<ResultMapping> additionalResultMappings,
       Class<?> enclosingType) {
     ErrorContext.instance().activity("processing " + resultMapNode.getValueBasedIdentifier());
+    // <resultMap> 的 type属性，表示结果集将被映射成 type 指定类型的对象
     String type = resultMapNode.getStringAttribute("type", resultMapNode.getStringAttribute("ofType",
         resultMapNode.getStringAttribute("resultType", resultMapNode.getStringAttribute("javaType"))));
+    // 解析 type类型
     Class<?> typeClass = resolveClass(type);
     if (typeClass == null) {
       typeClass = inheritEnclosingType(resultMapNode, enclosingType);
     }
     Discriminator discriminator = null;
+    // 该集合用来记录解析结果
     List<ResultMapping> resultMappings = new ArrayList<>(additionalResultMappings);
+    // 获取并处理 <resultMap> 的子节点
     List<XNode> resultChildren = resultMapNode.getChildren();
+    // child 单数形式，children 复数形式
     for (XNode resultChild : resultChildren) {
+      // 处理 <constructor>节点
       if ("constructor".equals(resultChild.getName())) {
         processConstructorElement(resultChild, typeClass, resultMappings);
+        // 处理 <discriminator>节点
       } else if ("discriminator".equals(resultChild.getName())) {
         discriminator = processDiscriminatorElement(resultChild, typeClass, resultMappings);
       } else {
+        // 处理 <id>, <result>, <association>, <collection> 等节点
         List<ResultFlag> flags = new ArrayList<>();
         if ("id".equals(resultChild.getName())) {
           flags.add(ResultFlag.ID);
         }
+        // 创建 ResultMapping对象，并添加到 resultMappings集合 TODO
         resultMappings.add(buildResultMappingFromContext(resultChild, typeClass, flags));
       }
     }
+    // <resultMap> 的 id属性，默认值会拼装所有父节点的 id 或 value 或 property属性值
     String id = resultMapNode.getStringAttribute("id", resultMapNode.getValueBasedIdentifier());
+    // 该属性指定了该 <resultMap>节点 的继承关系
     String extend = resultMapNode.getStringAttribute("extends");
+    // 为 true 则启动自动映射功能，该功能会自动查找与列明相同的属性名，并调用 setter方法，
+    // 为 false，则需要在 <resultMap>节点 内注明映射关系才会调用对应的 setter方法
     Boolean autoMapping = resultMapNode.getBooleanAttribute("autoMapping");
     ResultMapResolver resultMapResolver = new ResultMapResolver(builderAssistant, id, typeClass, extend, discriminator,
         resultMappings, autoMapping);
@@ -305,11 +330,15 @@ public class XMLMapperBuilder extends BaseBuilder {
   }
 
   private void sqlElement(List<XNode> list, String requiredDatabaseId) {
+    // 遍历 <sql>节点
     for (XNode context : list) {
       String databaseId = context.getStringAttribute("databaseId");
+      // 为 id 添加命名空间
       String id = context.getStringAttribute("id");
+      // 检测 <sql> 的 databaseId 与当前 Configuration 中记录的 databaseId 是否一致
       id = builderAssistant.applyCurrentNamespace(id, false);
       if (databaseIdMatchesCurrent(id, databaseId, requiredDatabaseId)) {
+        // 记录到 sqlFragments(Map<String, XNode>) 中保存
         sqlFragments.put(id, context);
       }
     }
@@ -330,7 +359,11 @@ public class XMLMapperBuilder extends BaseBuilder {
     return context.getStringAttribute("databaseId") == null;
   }
 
+  /**
+   * 根据上下文环境构建 ResultMapping
+   */
   private ResultMapping buildResultMappingFromContext(XNode context, Class<?> resultType, List<ResultFlag> flags) {
+    // 获取各个节点的属性，见文知意
     String property;
     if (flags.contains(ResultFlag.CONSTRUCTOR)) {
       property = context.getStringAttribute("name");
@@ -353,6 +386,7 @@ public class XMLMapperBuilder extends BaseBuilder {
     Class<?> javaTypeClass = resolveClass(javaType);
     Class<? extends TypeHandler<?>> typeHandlerClass = resolveClass(typeHandler);
     JdbcType jdbcTypeEnum = resolveJdbcType(jdbcType);
+    // 创建 ResultMapping对象 并返回
     return builderAssistant.buildResultMapping(resultType, property, column, javaTypeClass, jdbcTypeEnum, nestedSelect,
         nestedResultMap, notNullColumn, columnPrefix, typeHandlerClass, flags, resultSet, foreignColumn, lazy);
   }
@@ -381,19 +415,25 @@ public class XMLMapperBuilder extends BaseBuilder {
   }
 
   private void bindMapperForNamespace() {
+    // 获取映射配置文件的命名空间
     String namespace = builderAssistant.getCurrentNamespace();
     if (namespace != null) {
       Class<?> boundType = null;
       try {
+        // 解析命名空间对应的类型
         boundType = Resources.classForName(namespace);
       } catch (ClassNotFoundException e) {
         // ignore, bound type is not required
       }
+      // 是否已加载 boundType接口
       if (boundType != null && !configuration.hasMapper(boundType)) {
         // Spring may not know the real resource name so we set a flag
         // to prevent loading again this resource from the mapper interface
         // look at MapperAnnotationBuilder#loadXmlResource
+        // 追加个 "namespace:" 的前缀，并添加到 Configuration 的 loadedResources集合 中
         configuration.addLoadedResource("namespace:" + namespace);
+        // 添加到 Configuration的mapperRegistry集合 中，另外，往这个方法栈的更深处看 会发现
+        // 其创建了 MapperAnnotationBuilder对象，并调用了该对象的 parse()方法 解析 Mapper接口
         configuration.addMapper(boundType);
       }
     }

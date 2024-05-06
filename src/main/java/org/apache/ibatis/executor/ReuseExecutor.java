@@ -38,6 +38,8 @@ import org.apache.ibatis.transaction.Transaction;
  */
 public class ReuseExecutor extends BaseExecutor {
 
+  // 本map用于缓存使用过的Statement，以提升本框架的性能
+  // key SQL语句，value 该SQL语句对应的Statement
   private final Map<String, Statement> statementMap = new HashMap<>();
 
   public ReuseExecutor(Configuration configuration, Transaction transaction) {
@@ -71,27 +73,43 @@ public class ReuseExecutor extends BaseExecutor {
     return handler.queryCursor(stmt);
   }
 
+  /**
+   * 当事务提交或回滚、连接关闭时，都需要关闭这些缓存的Statement对象。前面分析的BaseExecutor的
+   * commit()、rollback()和close()方法中都会调用doFlushStatements()方法，
+   * 所以在该方法中关闭Statement对象的逻辑非常合适
+   */
   @Override
   public List<BatchResult> doFlushStatements(boolean isRollback) {
+    // 遍历Statement对象集合，并依次关闭
     for (Statement stmt : statementMap.values()) {
       closeStatement(stmt);
     }
+    // 清除对Statement对象的缓存
     statementMap.clear();
+    // 返回一个空集合
     return Collections.emptyList();
   }
 
   private Statement prepareStatement(StatementHandler handler, Log statementLog) throws SQLException {
     Statement stmt;
     BoundSql boundSql = handler.getBoundSql();
+    // 获取要执行的sql语句
     String sql = boundSql.getSql();
+    // 如果之前执行过该sql，则从缓存中取出对应的Statement对象
+    // 不再创建新的Statement,减少系统开销
     if (hasStatementFor(sql)) {
       stmt = getStatement(sql);
+      // 修改超时时间
       applyTransactionTimeout(stmt);
     } else {
+      // 获取数据库连接
       Connection connection = getConnection(statementLog);
+      // 从连接中获取Statement对象
       stmt = handler.prepare(connection, transaction.getTimeout());
+      // 将sql语句 和对应的Statement对象缓存起来
       putStatement(sql, stmt);
     }
+    // 处理占位符
     handler.parameterize(stmt);
     return stmt;
   }

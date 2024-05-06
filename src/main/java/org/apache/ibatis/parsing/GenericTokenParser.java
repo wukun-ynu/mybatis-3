@@ -20,8 +20,17 @@ package org.apache.ibatis.parsing;
  */
 public class GenericTokenParser {
 
+  /**
+   * 开始标记
+   */
   private final String openToken;
+  /**
+   * 结束标记
+   */
   private final String closeToken;
+  /**
+   * 标记处理器
+   */
   private final TokenHandler handler;
 
   public GenericTokenParser(String openToken, String closeToken, TokenHandler handler) {
@@ -30,11 +39,18 @@ public class GenericTokenParser {
     this.handler = handler;
   }
 
+  /**
+   * 核心处理方法 , 看测试类{@link org.apache.ibatis.parsing.GenericTokenParserTest}
+   * @param text
+   * @return
+   */
   public String parse(String text) {
+    // 判断是否空
     if (text == null || text.isEmpty()) {
       return "";
     }
     // search open token
+    // 判断 openToken 所在的位置-1不存在
     int start = text.indexOf(openToken);
     if (start == -1) {
       return text;
@@ -43,10 +59,14 @@ public class GenericTokenParser {
     int offset = 0;
     final StringBuilder builder = new StringBuilder();
     StringBuilder expression = null;
+    // 循环处理         assertEquals("James T Kirk reporting.", parser.parse("${first_name} ${initial} ${last_name} reporting."));
+    // 将${} 转换成正常文本
     do {
       if (start > 0 && src[start - 1] == '\\') {
+        // `\` 忽略这个参数
         // this open token is escaped. remove the backslash and continue.
         builder.append(src, offset, start - offset - 1).append(openToken);
+        // offset 重新计算进行下一步循环
         offset = start + openToken.length();
       } else {
         // found open token. let's search close token.
@@ -64,15 +84,19 @@ public class GenericTokenParser {
             break;
           }
           // this close token is escaped. remove the backslash and continue.
+          // 遇到`\`该参数不需要处理
           expression.append(src, offset, end - offset - 1).append(closeToken);
+          // 计算offset重新推算替换的字符串
           offset = end + closeToken.length();
           end = text.indexOf(closeToken, offset);
         }
         if (end == -1) {
           // close token was not found.
+          // end == -1 closeToken 不存在,获取后面的所有字符串, openToken - closeToken 之间的内容
           builder.append(src, start, src.length - start);
           offset = src.length;
         } else {
+          // closeToken存在 继续执行
           builder.append(handler.handleToken(expression.toString()));
           offset = end + closeToken.length();
         }
@@ -82,6 +106,7 @@ public class GenericTokenParser {
     if (offset < src.length) {
       builder.append(src, offset, src.length - offset);
     }
+    // 返回的是一个替换后的sql脚本
     return builder.toString();
   }
 }

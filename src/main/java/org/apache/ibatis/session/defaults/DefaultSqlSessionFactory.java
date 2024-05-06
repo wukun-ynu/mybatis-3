@@ -91,10 +91,17 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
       boolean autoCommit) {
     Transaction tx = null;
     try {
+      // 获取配置的Environment对象
       final Environment environment = configuration.getEnvironment();
+      // 从environment中获取TransactionFactory对象，如果没有，就创建一个ManagedTransactionFactory实例并返回
       final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
+      // 从事务工厂中获取一个事务对象
       tx = transactionFactory.newTransaction(environment.getDataSource(), level, autoCommit);
+      // 根据事务对象tx和配置的Executor类型execType创建Executor实例
+      // ExecutorType是个枚举类型，有三个值 SIMPLE, REUSE, BATCH，分别对应了
+      // SimpleExecutor、ReuseExecutor、BatchExecutor
       final Executor executor = configuration.newExecutor(tx, execType);
+      // 创建DefaultSqlSession对象
       return new DefaultSqlSession(configuration, executor, autoCommit);
     } catch (Exception e) {
       closeTransaction(tx); // may have fetched a connection so lets call close()
@@ -108,12 +115,14 @@ public class DefaultSqlSessionFactory implements SqlSessionFactory {
     try {
       boolean autoCommit;
       try {
+        // 根据当前连接对象获取autoCommit属性（是否自动提交事务）
         autoCommit = connection.getAutoCommit();
       } catch (SQLException e) {
         // Failover to true, as most poor drivers
         // or databases won't support transactions
         autoCommit = true;
       }
+      // 除了获取autoCommit属性的方式和上面不一样外，下面的处理都与上面完全相同
       final Environment environment = configuration.getEnvironment();
       final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
       final Transaction tx = transactionFactory.newTransaction(connection);

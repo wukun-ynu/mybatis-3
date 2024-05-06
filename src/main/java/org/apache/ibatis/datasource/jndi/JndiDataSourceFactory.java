@@ -35,8 +35,12 @@ public class JndiDataSourceFactory implements DataSourceFactory {
   public static final String DATA_SOURCE = "data_source";
   public static final String ENV_PREFIX = "env.";
 
+  /**
+   * 直接 java 数据源
+   */
   private DataSource dataSource;
 
+  // 设置数据源属性
   @Override
   public void setProperties(Properties properties) {
     try {
@@ -48,6 +52,7 @@ public class JndiDataSourceFactory implements DataSourceFactory {
         initCtx = new InitialContext(env);
       }
 
+      // 如果包含`initial_context`和`data_source`
       if (properties.containsKey(INITIAL_CONTEXT) && properties.containsKey(DATA_SOURCE)) {
         Context ctx = (Context) initCtx.lookup(properties.getProperty(INITIAL_CONTEXT));
         dataSource = (DataSource) ctx.lookup(properties.getProperty(DATA_SOURCE));
@@ -59,7 +64,7 @@ public class JndiDataSourceFactory implements DataSourceFactory {
       throw new DataSourceException("There was an error configuring JndiDataSourceTransactionPool. Cause: " + e, e);
     }
   }
-
+  // 获取数据源的配置信息
   @Override
   public DataSource getDataSource() {
     return dataSource;
@@ -71,10 +76,12 @@ public class JndiDataSourceFactory implements DataSourceFactory {
     for (Entry<Object, Object> entry : allProps.entrySet()) {
       String key = (String) entry.getKey();
       String value = (String) entry.getValue();
+      // 只获取前缀`env`
       if (key.startsWith(PREFIX)) {
         if (contextProperties == null) {
           contextProperties = new Properties();
         }
+        // 放入数据
         contextProperties.put(key.substring(PREFIX.length()), value);
       }
     }

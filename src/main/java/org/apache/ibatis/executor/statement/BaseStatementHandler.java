@@ -38,18 +38,26 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
  */
 public abstract class BaseStatementHandler implements StatementHandler {
 
+  // 持有的这些属性都是通过构造方法完成初始化的,typeHandlerRegistry
+  // objectFactory、parameterHandler等则通过configuration属性获得
   protected final Configuration configuration;
   protected final ObjectFactory objectFactory;
   protected final TypeHandlerRegistry typeHandlerRegistry;
   protected final ResultSetHandler resultSetHandler;
+  // parameterHandler的功能主要是为SQL语句绑定实参，也就是使用传入的实参
+  // 替换SQL语句中的占位符"?"
   protected final ParameterHandler parameterHandler;
 
+  // 用来执行SQL语句的执行器
   protected final Executor executor;
   protected final MappedStatement mappedStatement;
+  // 记录了用户设置的offset和limit，用于在结果集中定位
+  // 映射的起始位置和结束位置
   protected final RowBounds rowBounds;
 
   protected BoundSql boundSql;
 
+  // BaseStatementHandler的构造方法主要用于属性的初始化
   protected BaseStatementHandler(Executor executor, MappedStatement mappedStatement, Object parameterObject,
       RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
     this.configuration = mappedStatement.getConfiguration();
@@ -61,6 +69,8 @@ public abstract class BaseStatementHandler implements StatementHandler {
     this.objectFactory = configuration.getObjectFactory();
 
     if (boundSql == null) { // issue #435, get the key before calculating the statement
+      // 其中调用了KeyGenerator的processBefore()方法
+      // 用于初始化SQL语句的主键
       generateKeys(parameterObject);
       boundSql = mappedStatement.getBoundSql(parameterObject);
     }
@@ -87,7 +97,9 @@ public abstract class BaseStatementHandler implements StatementHandler {
     ErrorContext.instance().sql(boundSql.getSql());
     Statement statement = null;
     try {
+      // 这是一个抽象方法，用于初始化java.sql.Statement对象
       statement = instantiateStatement(connection);
+      // 为Statement对象设置超时时间及fetchSize
       setStatementTimeout(statement, transactionTimeout);
       setFetchSize(statement);
       return statement;

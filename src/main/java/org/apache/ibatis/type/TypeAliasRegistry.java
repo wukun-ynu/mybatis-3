@@ -37,6 +37,7 @@ import org.apache.ibatis.io.Resources;
  */
 public class TypeAliasRegistry {
 
+  // registerAlias 操作的对象是一个map对象
   private final Map<String, Class<?>> typeAliases = new HashMap<>();
 
   public TypeAliasRegistry() {
@@ -146,15 +147,28 @@ public class TypeAliasRegistry {
     }
   }
 
+  /**
+   * 加载{@link Alias} 注解的内容
+   *
+   * @param type
+   */
   public void registerAlias(Class<?> type) {
     String alias = type.getSimpleName();
     Alias aliasAnnotation = type.getAnnotation(Alias.class);
     if (aliasAnnotation != null) {
+      // 获取 别名注解
       alias = aliasAnnotation.value();
     }
     registerAlias(alias, type);
   }
 
+  /**
+   * 别名注册,
+   * typeAliases 是一个map key=>别名,value=>字节码
+   *
+   * @param alias 别名名称
+   * @param value 别名的字节码
+   */
   public void registerAlias(String alias, Class<?> value) {
     if (alias == null) {
       throw new TypeException("The parameter alias cannot be null");

@@ -74,6 +74,7 @@ public class Reflector {
   // 里面的大部分方法都是通过简单的JDK反射操作实现的
   public Reflector(Class<?> clazz) {
     type = clazz;
+    // 构造方法
     addDefaultConstructor(clazz);
     Method[] classMethods = getClassMethods(clazz);
     if (isRecord(type)) {
@@ -103,13 +104,17 @@ public class Reflector {
   }
 
   private void addDefaultConstructor(Class<?> clazz) {
+    // 获取类里面的所有构造方法
     Constructor<?>[] constructors = clazz.getDeclaredConstructors();
+    // 过滤得到空参构造 constructor -> constructor.getParameterTypes().length == 0
     Arrays.stream(constructors).filter(constructor -> constructor.getParameterTypes().length == 0).findAny()
         .ifPresent(constructor -> this.defaultConstructor = constructor);
   }
 
   private void addGetMethods(Method[] methods) {
+    // 反射方法
     Map<String, List<Method>> conflictingGetters = new HashMap<>();
+    // JDK8 filter 过滤get 开头的方法
     Arrays.stream(methods).filter(m -> m.getParameterTypes().length == 0 && PropertyNamer.isGetter(m.getName()))
         .forEach(m -> addMethodConflict(conflictingGetters, PropertyNamer.methodToProperty(m.getName()), m));
     resolveGetterConflicts(conflictingGetters);
@@ -297,6 +302,7 @@ public class Reflector {
    * @return An array containing all methods in this class
    */
   private Method[] getClassMethods(Class<?> clazz) {
+    // 方法唯一标识: 方法
     Map<String, Method> uniqueMethods = new HashMap<>();
     Class<?> currentClass = clazz;
     while (currentClass != null && currentClass != Object.class) {
@@ -304,11 +310,14 @@ public class Reflector {
 
       // we also need to look for interface methods -
       // because the class may be abstract
+      // 当前类是否继承别的类(实现接口)如果继承则需要进行操作
       Class<?>[] interfaces = currentClass.getInterfaces();
       for (Class<?> anInterface : interfaces) {
+        // getMethods 获取本身和父类的 public 方法
         addUniqueMethods(uniqueMethods, anInterface.getMethods());
       }
 
+      // 循环往上一层一层寻找最后回到 Object 类 的上级为null 结束
       currentClass = currentClass.getSuperclass();
     }
 
@@ -319,7 +328,10 @@ public class Reflector {
 
   private void addUniqueMethods(Map<String, Method> uniqueMethods, Method[] methods) {
     for (Method currentMethod : methods) {
+      // 桥接, 具体还不知道
+      // TODO: 2019/12/9 JAVA 桥接方法
       if (!currentMethod.isBridge()) {
+        // 方法的唯一标识
         String signature = getSignature(currentMethod);
         // check to see if the method is already known
         // if it is known, then an extended class must have
@@ -331,6 +343,12 @@ public class Reflector {
     }
   }
 
+  /**
+   * 方法唯一标识,返回值类型#方法名称：参数列表
+   *
+   * @param method
+   * @return
+   */
   private String getSignature(Method method) {
     StringBuilder sb = new StringBuilder();
     Class<?> returnType = method.getReturnType();

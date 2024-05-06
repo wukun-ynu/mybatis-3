@@ -31,19 +31,31 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
 public class ResultMapping {
 
   private Configuration configuration;
+  // 对应节点的 property属性，表示 该列进行映射的属性
   private String property;
+  // 对应节点的 column属性，表示 从数据库中得到的列名或列名的别名
   private String column;
+  // 表示 一个 JavaBean 的完全限定名，或一个类型别名
   private Class<?> javaType;
+  // 进行映射列的 JDBC类型
   private JdbcType jdbcType;
+  // 类型处理器
   private TypeHandler<?> typeHandler;
+  // 该属性通过 id 引用了另一个 <resultMap>节点，它负责将结果集中的一部分列映射成
+  // 它所关联的结果对象。这样我们就可以通过 join方式 进行关联查询，然后直接映射成
+  // 多个对象，并同时设置这些对象之间的组合关系(nested嵌套的)
   private String nestedResultMapId;
+  // 该属性通过 id 引用了另一个 <select>节点，它会把指定的列值传入 select属性 指定的
+  // select语句 中作为参数进行查询。使用该属性可能会导致 ORM 中的 N+1问题，请谨慎使用
   private String nestedQueryId;
   private Set<String> notNullColumns;
   private String columnPrefix;
+  // 处理后的标志，共有两个：id 和 constructor
   private List<ResultFlag> flags;
   private List<ResultMapping> composites;
   private String resultSet;
   private String foreignColumn;
+  // 是否延迟加载
   private boolean lazy;
 
   ResultMapping() {

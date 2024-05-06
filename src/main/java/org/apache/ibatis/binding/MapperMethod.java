@@ -270,6 +270,9 @@ public class MapperMethod {
 
   }
 
+  /**
+   * 核心内容: sql id , Sql 类型
+   */
   public static class SqlCommand {
 
     // sql语句的id
@@ -336,6 +339,7 @@ public class MapperMethod {
     }
   }
 
+  // 方法签名
   public static class MethodSignature {
 
     // 返回值类型是否为 集合 或 数组
@@ -388,10 +392,21 @@ public class MapperMethod {
       this.paramNameResolver = new ParamNameResolver(configuration, method);
     }
 
+    /**
+     * 方法主要是把方法参数转换为SQL命令参数。
+     *
+     * @param args
+     * @return
+     */
     public Object convertArgsToSqlCommandParam(Object[] args) {
       return paramNameResolver.getNamedParams(args);
     }
 
+    /**
+     * 是否有 {@link RowBounds}
+     *
+     * @return
+     */
     public boolean hasRowBounds() {
       return rowBoundsIndex != null;
     }
@@ -400,6 +415,11 @@ public class MapperMethod {
       return hasRowBounds() ? (RowBounds) args[rowBoundsIndex] : null;
     }
 
+    /**
+     * 是否有resultHandler
+     *
+     * @return
+     */
     public boolean hasResultHandler() {
       return resultHandlerIndex != null;
     }
@@ -445,6 +465,7 @@ public class MapperMethod {
      */
     private Integer getUniqueParamIndex(Method method, Class<?> paramType) {
       Integer index = null;
+      // 获取参数类型
       final Class<?>[] argTypes = method.getParameterTypes();
       for (int i = 0; i < argTypes.length; i++) {
         if (paramType.isAssignableFrom(argTypes[i])) {
@@ -462,6 +483,12 @@ public class MapperMethod {
       return mapKey;
     }
 
+    /**
+     * 获取 {@link MapKey} 注解数据
+     *
+     * @param method
+     * @return
+     */
     private String getMapKey(Method method) {
       String mapKey = null;
       if (Map.class.isAssignableFrom(method.getReturnType())) {

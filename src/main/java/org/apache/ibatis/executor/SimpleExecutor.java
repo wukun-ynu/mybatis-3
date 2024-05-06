@@ -58,12 +58,19 @@ public class SimpleExecutor extends BaseExecutor {
       BoundSql boundSql) throws SQLException {
     Statement stmt = null;
     try {
+      // 获取配置对象
       Configuration configuration = ms.getConfiguration();
+      // 创建StatementHandler对象
       StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler,
           boundSql);
+      // 完成Statement的创建和初始化，该方法首先会调用StatementHandler的prepare()方法
+      // 创建Statement对象，然后调用StatementHandler的parameterize()方法处理占位符
       stmt = prepareStatement(handler, ms.getStatementLog());
+      // 调用StatementHandler的query()方法，执行sql语句，并通过ResultSetHandler
+      // 完成结果集的映射
       return handler.query(stmt, resultHandler);
     } finally {
+      // 关闭Statement对象
       closeStatement(stmt);
     }
   }
@@ -81,13 +88,16 @@ public class SimpleExecutor extends BaseExecutor {
 
   @Override
   public List<BatchResult> doFlushStatements(boolean isRollback) {
+    // SimpleExecutor不提供sql语句批处理，所以直接返回空集合
     return Collections.emptyList();
   }
 
   private Statement prepareStatement(StatementHandler handler, Log statementLog) throws SQLException {
     Statement stmt;
     Connection connection = getConnection(statementLog);
+    // 创建Statement对象
     stmt = handler.prepare(connection, transaction.getTimeout());
+    // 处理占位符
     handler.parameterize(stmt);
     return stmt;
   }

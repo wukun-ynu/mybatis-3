@@ -37,6 +37,11 @@ import java.util.concurrent.locks.ReadWriteLock;
  * </pre>
  *
  * @author Clinton Begin
+ * BlockingCache: 阻塞的缓存
+ * FifoCache: 按对象进入缓存的顺序来移除它们。
+ * LruCache: 最近最少使用的：移除最长时间不被使用的对象。
+ * SoftCache: 软引用：移除基于垃圾回收器状态和软引用规则的对象
+ * WeakCache: 弱引用：更积极地移除基于垃圾收集器状态和弱引用规则的对象。
  */
 
 public interface Cache {

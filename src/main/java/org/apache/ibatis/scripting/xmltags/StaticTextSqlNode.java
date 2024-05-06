@@ -25,6 +25,7 @@ public class StaticTextSqlNode implements SqlNode {
     this.text = text;
   }
 
+  // 静态文本apply 方法
   @Override
   public boolean apply(DynamicContext context) {
     context.appendSql(text);

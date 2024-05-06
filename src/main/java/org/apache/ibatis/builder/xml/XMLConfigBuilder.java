@@ -50,12 +50,17 @@ import org.apache.ibatis.type.JdbcType;
 /**
  * @author Clinton Begin
  * @author Kazuki Shimizu
+ * 主要负责解析mybatis-config.xml文件
  */
 public class XMLConfigBuilder extends BaseBuilder {
 
+  // 标记是否解析过mybatis-config.xml
   private boolean parsed;
+  // 用于解析mybatis-config.xml的解析器
   private final XPathParser parser;
+  // 标识<environment>配置的名称，默认读取<environment>标签的default属性
   private String environment;
+  // 创建并缓存Reflector对象
   private final ReflectorFactory localReflectorFactory = new DefaultReflectorFactory();
 
   public XMLConfigBuilder(Reader reader) {
@@ -102,11 +107,14 @@ public class XMLConfigBuilder extends BaseBuilder {
     this.parser = parser;
   }
 
+  // 解析的入口，调用了parseConfiguration()进行后续解析
   public Configuration parse() {
+    // parsed标志位的处理
     if (parsed) {
       throw new BuilderException("Each XMLConfigBuilder can only be used once.");
     }
     parsed = true;
+    // 在mybatis-config.xml配置文件中查找<configuration>标签,并开始解析
     parseConfiguration(parser.evalNode("/configuration"));
     return configuration;
   }
@@ -114,6 +122,7 @@ public class XMLConfigBuilder extends BaseBuilder {
   private void parseConfiguration(XNode root) {
     try {
       // issue #117 read properties first
+      // 根据 root.evalNode("properties") 中的值就可以知道具体是解析哪个标签的方法咯
       propertiesElement(root.evalNode("properties"));
       Properties settings = settingsAsProperties(root.evalNode("settings"));
       loadCustomVfsImpl(settings);
@@ -295,42 +304,61 @@ public class XMLConfigBuilder extends BaseBuilder {
     configuration.setNullableOnForEach(booleanValueOf(props.getProperty("nullableOnForEach"), false));
   }
 
+  /**
+   * Mybatis 可以配置多个 <environment>环境，分别用于开发、测试及生产等，
+   * 但每个 SqlSessionFactory实例 只能选择其一
+   */
   private void environmentsElement(XNode context) throws Exception {
     if (context == null) {
       return;
     }
     if (environment == null) {
+      // 如果未指定 XMLConfigBuilder 的 environment字段，则使用 default属性 指定的 <environment>环境
       environment = context.getStringAttribute("default");
     }
+    // 遍历 <environment>节点
     for (XNode child : context.getChildren()) {
       String id = child.getStringAttribute("id");
       if (isSpecifiedEnvironment(id)) {
+        // 实例化TransactionFactory
         TransactionFactory txFactory = transactionManagerElement(child.evalNode("transactionManager"));
+        // 创建DataSourceFactory 和 DataSource
         DataSourceFactory dsFactory = dataSourceElement(child.evalNode("dataSource"));
         DataSource dataSource = dsFactory.getDataSource();
+        // 创建的Environment对象中封装了上面的TransactionFactory和DataSource对象
         Environment.Builder environmentBuilder = new Environment.Builder(id).transactionFactory(txFactory)
             .dataSource(dataSource);
+        // 为configuration注入environment属性值
         configuration.setEnvironment(environmentBuilder.build());
         break;
       }
     }
   }
 
+  /**
+   * 解析 <databaseIdProvider>节点，并创建指定的 DatabaseIdProvider对象，
+   * 该对象会返回 databaseId的值，Mybatis 会根据 databaseId 选择对应的 sql语句 去执行
+   */
   private void databaseIdProviderElement(XNode context) throws Exception {
     if (context == null) {
       return;
     }
     String type = context.getStringAttribute("type");
     // awful patch to keep backward compatibility
+    // 为了保证兼容性，修改type取值
     if ("VENDOR".equals(type)) {
       type = "DB_VENDOR";
     }
+    // 解析相关配置信息
     Properties properties = context.getChildrenAsProperties();
+    // 创建DatabaseIdProvider对象
     DatabaseIdProvider databaseIdProvider = (DatabaseIdProvider) resolveClass(type).getDeclaredConstructor()
         .newInstance();
+    // 配置DatabaseIdProvider,完成初始化
     databaseIdProvider.setProperties(properties);
     Environment environment = configuration.getEnvironment();
     if (environment != null) {
+      // 根据前面解析到的 DataSource 获取 databaseId，并记录到 configuration 的 configuration属性 上
       String databaseId = databaseIdProvider.getDatabaseId(environment.getDataSource());
       configuration.setDatabaseId(databaseId);
     }
@@ -362,17 +390,25 @@ public class XMLConfigBuilder extends BaseBuilder {
     if (context == null) {
       return;
     }
+    // 处理typeHandler下的所有子标签
     for (XNode child : context.getChildren()) {
+      // 处理<package>标签
       if ("package".equals(child.getName())) {
+        // 获取指定的包名
         String typeHandlerPackage = child.getStringAttribute("name");
+        // 通过 typeHandlerRegistry 的 register(packageName)方法
+        // 扫描指定包中的所有 TypeHandler类，并进行注册
         typeHandlerRegistry.register(typeHandlerPackage);
       } else {
+        // JAVA的数据类型
         String javaTypeName = child.getStringAttribute("javaType");
+        // JDBC数据类型
         String jdbcTypeName = child.getStringAttribute("jdbcType");
         String handlerTypeName = child.getStringAttribute("handler");
         Class<?> javaTypeClass = resolveClass(javaTypeName);
         JdbcType jdbcType = resolveJdbcType(jdbcTypeName);
         Class<?> typeHandlerClass = resolveClass(handlerTypeName);
+        // 注册
         if (javaTypeClass != null) {
           if (jdbcType == null) {
             typeHandlerRegistry.register(javaTypeClass, typeHandlerClass);
@@ -386,18 +422,31 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * 解析 <mappers>节点，本方法会创建 XMLMapperBuilder对象 加载映射文件，如果映射配置文件存在
+   * 相应的 Mapper接口，也会加载相应的 Mapper接口，解析其中的注解 并完成向 MapperRegistry 的注册
+   */
   private void mappersElement(XNode context) throws Exception {
     if (context == null) {
       return;
     }
+    // 处理<mappers>的子节点
     for (XNode child : context.getChildren()) {
       if ("package".equals(child.getName())) {
+        // 获取<package>子节点中的包名
         String mapperPackage = child.getStringAttribute("name");
+        // 扫描指定的包目录，然后向MapperRegistry注册Mapper接口
         configuration.addMappers(mapperPackage);
       } else {
+        // 获取 <mapper>节点 的 resource、url、mapperClass属性，这三个属性互斥，只能有一个不为空
+        // Mybatis 提供了通过包名、映射文件路径、类全名、URL 四种方式引入映射器。
+        // 映射器由一个接口和一个 XML配置文件 组成，XML文件 中定义了一个 命名空间namespace，
+        // 它的值就是接口对应的全路径。
         String resource = child.getStringAttribute("resource");
         String url = child.getStringAttribute("url");
         String mapperClass = child.getStringAttribute("class");
+        // 如果 <mapper>节点 指定了 resource 或是 url属性，则创建 XMLMapperBuilder对象 解析
+        // resource 或是 url属性 指定的 Mapper配置文件
         if (resource != null && url == null && mapperClass == null) {
           ErrorContext.instance().resource(resource);
           try (InputStream inputStream = Resources.getResourceAsStream(resource)) {
@@ -413,6 +462,7 @@ public class XMLConfigBuilder extends BaseBuilder {
             mapperParser.parse();
           }
         } else if (resource == null && url == null && mapperClass != null) {
+          // 如果 <mapper>节点 指定了 class属性，则向 MapperRegistry 注册 该Mapper接口
           Class<?> mapperInterface = Resources.classForName(mapperClass);
           configuration.addMapper(mapperInterface);
         } else {

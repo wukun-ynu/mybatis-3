@@ -32,10 +32,25 @@ import org.apache.ibatis.reflection.wrapper.ObjectWrapperFactory;
  */
 public class MetaObject {
 
+  /**
+   * 原始的数据对象,初始化时的对象
+   */
   private final Object originalObject;
+  /**
+   * 对象包装
+   */
   private final ObjectWrapper objectWrapper;
+  /**
+   * object 工厂
+   */
   private final ObjectFactory objectFactory;
+  /**
+   * object
+   */
   private final ObjectWrapperFactory objectWrapperFactory;
+  /**
+   * 反射工程
+   */
   private final ReflectorFactory reflectorFactory;
 
   private MetaObject(Object object, ObjectFactory objectFactory, ObjectWrapperFactory objectWrapperFactory,
@@ -44,7 +59,7 @@ public class MetaObject {
     this.objectFactory = objectFactory;
     this.objectWrapperFactory = objectWrapperFactory;
     this.reflectorFactory = reflectorFactory;
-
+    // 根据object不同实例进行不同的实例化方式
     if (object instanceof ObjectWrapper) {
       this.objectWrapper = (ObjectWrapper) object;
     } else if (objectWrapperFactory.hasWrapperFor(object)) {
@@ -110,11 +125,23 @@ public class MetaObject {
     return objectWrapper.hasGetter(name);
   }
 
+  /**
+   * 获取value
+   * @param name 属性值名称
+   * @return
+   */
   public Object getValue(String name) {
     PropertyTokenizer prop = new PropertyTokenizer(name);
     return objectWrapper.get(prop);
   }
 
+  /**
+   * metaObject 设置属性值方法
+   * {name:value}
+   *
+   * @param name  属性值名称
+   * @param value 属性值
+   */
   public void setValue(String name, Object value) {
     objectWrapper.set(new PropertyTokenizer(name), value);
   }

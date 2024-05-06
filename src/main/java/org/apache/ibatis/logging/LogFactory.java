@@ -19,6 +19,15 @@ import java.lang.reflect.Constructor;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
+ * <p>日志工厂，实现内容:</p>
+ * <ol>
+ *     <li>org.slf4j.Logger 日志框架 slf4j</li>
+ *     <li>org.apache.commons.logging.Log 日志框架 apache</li>
+ *     <li>org.apache.logging.log4j.Logger 日志框架 log4j2</li>
+ *     <li>org.apache.log4j.Logger 日志框架 log4j </li>
+ *     <li>java.util.logging.Logger 日志框架,JDK的logger</li>
+ *
+ * </ol>
  * @author Clinton Begin
  * @author Eduardo Macarron
  */
@@ -32,15 +41,25 @@ public final class LogFactory {
   private static final ReentrantLock lock = new ReentrantLock();
   private static Constructor<? extends Log> logConstructor;
 
+  /**
+   * 日志的实现类的具体选择
+   */
   static {
+    // slf4j 日志
     tryImplementation(LogFactory::useSlf4jLogging);
-    tryImplementation(LogFactory::useCommonsLogging);
+    // log4j2 日志
     tryImplementation(LogFactory::useLog4J2Logging);
+    // log4 日志
     tryImplementation(LogFactory::useLog4JLogging);
+    // JDK 日志
     tryImplementation(LogFactory::useJdkLogging);
+    // 空 日志
     tryImplementation(LogFactory::useNoLogging);
   }
 
+  /**
+   * 私有化构造方法,这是一个单例
+   */
   private LogFactory() {
     // disable construction
   }
@@ -93,9 +112,13 @@ public final class LogFactory {
     setImplementation(org.apache.ibatis.logging.nologging.NoLoggingImpl.class);
   }
 
+  /**
+   * 选择具体的日志实现
+   */
   private static void tryImplementation(Runnable runnable) {
     if (logConstructor == null) {
       try {
+        // run()? 似乎违背了代码的语义, 看静态方法.静态方法多行同类型的操作我认为是一个多线程
         runnable.run();
       } catch (Throwable t) {
         // ignore
@@ -103,6 +126,9 @@ public final class LogFactory {
     }
   }
 
+  /**
+   * 选择具体的日志实现
+   */
   private static void setImplementation(Class<? extends Log> implClass) {
     lock.lock();
     try {

@@ -25,8 +25,10 @@ import java.sql.SQLException;
  */
 public interface ParameterHandler {
 
+  // 获取用户传入的实参对象
   Object getParameterObject();
 
+  // 本方法主要负责调用PreparedStatement.set*()方法，为SQL语句绑定实参
   void setParameters(PreparedStatement ps) throws SQLException;
 
 }

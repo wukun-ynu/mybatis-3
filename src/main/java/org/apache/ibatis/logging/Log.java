@@ -17,6 +17,7 @@ package org.apache.ibatis.logging;
 
 /**
  * @author Clinton Begin
+ * 通过自己定义的接口来实现各大日志框架的内容达到高可用
  */
 public interface Log {
 
